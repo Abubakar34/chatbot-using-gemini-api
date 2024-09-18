@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot App</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<style>
+    
+    .chat-output {
+        text-align: left;
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 10px;
+        border-top: 1px solid #cccccc;
+        margin-top: 20px;
+    }
+    
+</style>
+<body>
+    <div class="container d-flex justify-content-center align-items-center">
+        <div class="chat-container">
+            <h1 class="heading">Chatbot</h1>
+            <div class="chat-box">
+                <input type="text" id="userInput" class="form-control" placeholder="Type your message here...">
+                <button onclick="sendMessage()" class="btn">Send</button>
+            </div>
+            <div id="chatOutput" class="chat-output"></div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        async function sendMessage() {
+            const inputElement = document.getElementById('userInput');
+            const outputElement = document.getElementById('chatOutput');
+            const userMessage = inputElement.value.trim();
+
+            if (userMessage === "") {
+                return; // Do nothing if the input is empty
+            }
+
+            // Add user message to chat output
+            const userMessageElement = document.createElement('p');
+            userMessageElement.className = 'user-message';
+            userMessageElement.textContent = `You: ${userMessage}`;
+            outputElement.appendChild(userMessageElement);
+
+            // Clear the input field
+            inputElement.value = '';
+
+            // Scroll to the bottom of the chat output
+            outputElement.scrollTop = outputElement.scrollHeight;
+
+            // Send the user message to the server and get the response
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: userMessage }),
+                });
+                const data = await response.json();
+                const botResponse = data.response;
+                await displayResponseCharacterByCharacter(botResponse, outputElement);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function displayResponseCharacterByCharacter(response, outputElement) {
+            let botResponse = '';
+            for (let i = 0; i < response.length; i++) {
+                botResponse += response[i];
+                await sleep(1); // Adjust the delay (in milliseconds) between each character
+
+                // Clear the chat output before appending new characters
+                outputElement.innerHTML = '';
+
+                // Add bot response to chat output character by character
+                const botResponseElement = document.createElement('p');
+                botResponseElement.className = 'bot-response';
+                botResponseElement.innerHTML = `${botResponse}`; // Use innerHTML to allow rendering of HTML content
+                outputElement.appendChild(botResponseElement);
+
+                // Scroll to the bottom of the chat output
+                outputElement.scrollTop = outputElement.scrollHeight;
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Optional: allow pressing "Enter" key to send the message
+        document.getElementById('userInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
